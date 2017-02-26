@@ -2,17 +2,21 @@
 from Gym_LineTracer import LineTracerEnv, APPWINDOW
 from sample_agent import Agent
 
-import wx
-from threading import Thread
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtCore import QThread
+
+import sys
 
 # Define Agent And Environment
 agent = Agent(2)
 env = LineTracerEnv()
 
-class SimulationLoop(Thread):
+class SimulationLoop(QThread):
     def __init__(self):
-        Thread.__init__(self)
-        self.start()    # start the thread
+        QThread.__init__(self)
+
+    def __del__(self):
+        self.wait()
 
     def run(self):
         observation = env.reset()
@@ -24,18 +28,16 @@ class SimulationLoop(Thread):
             if done:
                 print("Episode finished after {} timesteps".format(t+1))
                 break
-            wx.Yield()
-
-        env.monitor.close()
         
         print("Simulation completed\nWaiting for closing window..")
         
        
 if __name__ == '__main__':
-    app = wx.PySimpleApp()
-    w = APPWINDOW(title='RL Test')
+    app = 0
+    app = QApplication(sys.argv)
+    
+    w = APPWINDOW(SimulationLoop() , title='RL Test')
     w.SetWorld(env)
-    w.Center()
-    w.Show()
-    SimulationLoop()
-    app.MainLoop()
+    w.show()
+
+    sys.exit(app.exec_())

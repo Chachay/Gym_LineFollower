@@ -6,23 +6,24 @@ from gym import spaces
 from gym.utils import seeding
 import numpy as np
 
-import wx
-
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import QWidget
+from PyQt5.QtCore import *
 
 class Walls(object):
     def __init__(self, x0, y0, x1, y1):
         self.xList = [x0, x1]
         self.yList = [y0, y1]
-        self.P_color = wx.Colour(50,50,50)
+        self.P_color = QColor(50,50,50)
 
     def addPoint(self, x, y):
         self.xList.append(x)
         self.yList.append(y)
 
     def Draw(self,dc):
-        dc.SetPen(wx.Pen(self.P_color))
+        dc.setPen(self.P_color)
         for i in range(0, len(self.xList)-1):
-            dc.DrawLine(self.xList[i], self.yList[i], self.xList[i+1],self.yList[i+1])
+            dc.drawLine(self.xList[i], self.yList[i], self.xList[i+1],self.yList[i+1])
 
     def IntersectLine(self, p0, v0, i):
         dp = [p0[0] - self.xList[i], p0[1] - self.yList[i]]
@@ -82,12 +83,12 @@ class Ball(object):
         self.property = property
 
         self.B_color = color
-        self.P_color = wx.Colour(50,50,50)
+        self.P_color = QColor(50,50,50)
 
     def Draw(self, dc):
-        dc.SetPen(wx.Pen(self.P_color))
-        dc.SetBrush(wx.Brush(self.B_color))
-        dc.DrawCircle(self.pos_x, self.pos_y, self.rad)
+        dc.setPen(self.P_color)
+        dc.setBrush(self.B_color)
+        dc.drawEllipse(QPoint(self.pos_x, self.pos_y),self.rad, self.rad)
     
     def SetPos(self, x, y):
         self.pos_x = x
@@ -130,7 +131,7 @@ class Sens(object):
 class Agent(Ball):
     def __init__(self, canvasSize, x, y, epsilon = 0.99, model = None):
         super(Agent, self).__init__(
-            x, y, wx.Colour(112,146,190)
+            x, y, QColor(112,146,190)
         )
         self.dir_Angle = 0.0#-math.pi/2.0
         self.speed     = 5.0
@@ -151,8 +152,8 @@ class Agent(Ball):
             self.EYE.obj = -1
     
     def Draw(self, dc):
-        dc.SetPen(wx.Pen(self.P_color))
-        dc.DrawLine(self.pos_x, self.pos_y, 
+        dc.setPen(self.P_color)
+        dc.drawLine(self.pos_x, self.pos_y, 
                 self.pos_x + self.EYE.OverHang*math.cos(self.dir_Angle + self.EYE.OffSetAngle),
                 self.pos_y - self.EYE.OverHang*math.sin(self.dir_Angle + self.EYE.OffSetAngle))
         super(Agent, self).Draw(dc)
@@ -280,53 +281,39 @@ class LineTracerEnv(gym.Env):
             return
         return
 
-class APPWINDOW(wx.Frame):
-    def __init__(self, parent=None, id=-1, title=None):
-        wx.Frame.__init__(self, parent, id, title)
-        self.MainPanel = wx.Panel(self, size=(640, 480))
-        self.MainPanel.SetBackgroundColour('WHITE')
+class APPWINDOW(QWidget):
+    def __init__(self, WorkerThread, parent=None, id=-1, title=None):
+        super().__init__()
         
-        self.panel = wx.Panel(self.MainPanel, size = (640,480))
-        self.panel.SetBackgroundColour('WHITE')
-        
-        mainSizer = wx.BoxSizer(wx.VERTICAL)
-        mainSizer.Add(self.panel)
-
-        self.SetSizer(mainSizer)
-        self.Fit()
+        self.resize(640, 480)
+        self.setWindowTitle(title)
+        self.setStyleSheet("background-color : white;"); 
                
-        self.Bind(wx.EVT_CLOSE, self.CloseWindow)
-        
         self.World = None
  
-        self.cdc = wx.ClientDC(self.panel)
-        w, h = self.panel.GetSize()
-        self.bmp = wx.EmptyBitmap(w,h)
- 
-        self.timer = wx.Timer(self)
-        self.Bind(wx.EVT_TIMER, self.OnTimer)
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.OnTimer)
+        self.timer.start(20)
         
-        self.timer.Start(20)
+        self.WThread = WorkerThread
+        self.WThread.start()
     
     def SetWorld(self, World):
         self.World = World
 
-    def CloseWindow(self, event):
-        # self.timer.Stop()
-        wx.Exit()
-
-    def OnTimer(self, event):
+    def paintEvent(self, QPaintEvent):
         if self.World is not None:
             # Graphics Update
-            self.bdc = wx.BufferedDC(self.cdc, self.bmp)
-            self.gcdc = wx.GCDC(self.bdc)
-            self.gcdc.Clear()
+            qp = QPainter(self)
             
-            self.gcdc.SetPen(wx.Pen('white'))
-            self.gcdc.SetBrush(wx.Brush('white'))
-            self.gcdc.DrawRectangle(0,0,640,640)
-
+            qp.setPen(QColor(Qt.white))
+            qp.setBrush(QColor(Qt.white))
+            qp.drawRect(0,0,640,480)
+            
             for ag in [self.World.A]:
-                ag.Draw(self.gcdc)
-            self.World.BBox.Draw(self.gcdc)
-            self.World.Course.Draw(self.gcdc)
+                ag.Draw(qp)
+            self.World.BBox.Draw(qp)
+            self.World.Course.Draw(qp)
+            
+    def OnTimer(self):
+        self.update()

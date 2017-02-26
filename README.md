@@ -5,12 +5,13 @@ Simple 2D Line Follower Environment with OpenAI gym I/F.
 
 
 ## Requirement
-- Python 2.7
+- Python 3.6.0 |Anaconda 4.3.0 (64-bit)
 - OpenAI-Gym (https://github.com/openai/gym)
-- numpy
-- wxPython3.0-win32-py27
+- Chainer 1.19
+- ChainerRL 0.20
+- cached_property
 
 ## Usage
 ```
-python example.py
+python example2.py
 ```
